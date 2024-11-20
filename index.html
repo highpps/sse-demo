@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP List Upload Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+          rel="stylesheet">
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        body, input, button {
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+        }
+
+        .container {
+            box-sizing: border-box;
+            width: 100vw;
+            min-height: 100vh;
+            padding: 20px;
+            background-image: linear-gradient(to bottom right, #fa8231, #8854d0);
+        }
+
+        .content {
+            box-sizing: border-box;
+            width: 800px;
+            max-width: 100vw;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50px;
+            padding: 10px 20px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+
+        progress {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 20px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        progress::-webkit-progress-bar {
+            background-color: #e0e0e0;
+        }
+
+        progress::-webkit-progress-value {
+            background-image: linear-gradient(to right, #3867d6, #8854d0);
+            border-radius: 10px;
+        }
+
+        progress::-moz-progress-bar {
+            background-image: linear-gradient(to right, #3867d6, #8854d0);
+            border-radius: 10px;
+        }
+
+        button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: #3867d6;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #778ca3;
+            cursor: not-allowed;
+        }
+
+        .progress-done::-webkit-progress-value {
+            background: #20bf6b;
+            border-radius: 10px;
+        }
+
+        .progress-done::-moz-progress-bar {
+            background: #20bf6b;
+            border-radius: 10px;
+        }
+    </style>
+
+</head>
+<body>
+<div class="container">
+    <div class="content">
+        <h1>SSE demo</h1>
+        <button onclick="startUpload()" id="start-btn">Start Upload</button>
+        <p id="progress-text">Waiting for input...</p>
+        <progress max="10000000" value="0" id="progress"></progress>
+    </div>
+</div>
+
+<script>
+    function startUpload() {
+        const startBtn = document.getElementById("start-btn");
+        const progressText = document.getElementById("progress-text");
+        const progress = document.getElementById("progress");
+        let total = 0;
+
+        progressText.innerText = "Waiting for the server..."
+        startBtn.disabled = true;
+        progress.classList.remove("progress-done");
+
+        // Set up the EventSource object.
+        // This will send a GET request to the specified address
+        // and expect a Content-Type: text/event-source in the response
+        const eventSource = new EventSource('/upload');
+
+        // Listen on the "info" channel
+        eventSource.addEventListener("info", function (event) {
+            const infoData = JSON.parse(event.data);
+            total = infoData.total;
+        });
+
+        // Listen on the "progress" channel
+        eventSource.addEventListener("progress", function (event) {
+            progress.value = event.data
+            progressText.innerText = `Uploaded ${event.data} / ${total}`
+        });
+
+        // Listen on the "done" channel
+        eventSource.addEventListener("done", function (event) {
+            progressText.innerText = event.data;
+            eventSource.close();
+            startBtn.disabled = false;
+            progress.classList.add("progress-done");
+        });
+
+        // Handle unexpected errors
+        eventSource.onerror = function () {
+            progressText.innerText = "Error occurred."
+            eventSource.close();
+            startBtn.disabled = false;
+        }
+
+        // If you don't need multiple channels, you can use eventSource.onmessage instead
+        /* eventSource.onmessage = function(event) {
+            const data = event.data;
+            // Do something with the message data
+        } */
+    }
+</script>
+</body>
+</html>
